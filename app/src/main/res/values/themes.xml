@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-
-    <style name="Theme.NeetRust" parent="android:Theme.DeviceDefault.NoActionBar" />
+    <style name="Theme.NeetRust" parent="android:Theme.DeviceDefault.NoActionBar">
+        <item name="android:windowBackground">@color/logo_background</item>
+        <item name="android:statusBarColor">@color/logo_background</item>
+        <item name="android:navigationBarColor">@color/logo_background</item>
+    </style>
 </resources>
