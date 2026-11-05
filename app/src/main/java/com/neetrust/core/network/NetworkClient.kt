@@ -1,6 +1,7 @@
 package com.neetrust.core.network
 
 import com.neetrust.ui.config.AppConfig
+import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.Interceptor
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
@@ -8,6 +9,7 @@ import retrofit2.Retrofit
 import retrofit2.converter.moshi.MoshiConverterFactory
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
+import java.io.IOException
 import java.util.concurrent.TimeUnit
 
 object NetworkClient {
@@ -28,15 +30,45 @@ object NetworkClient {
         chain.proceed(builder.build())
     }
 
+    private val backendUrls = AppConfig.BACKEND_BASE_URLS.map { it.trimEnd('/').toHttpUrl() }
+
+    @Volatile
+    private var activeIndex = 0
+
+    private val failoverInterceptor = Interceptor { chain ->
+        val original = chain.request()
+        var lastError: IOException? = null
+        for (offset in backendUrls.indices) {
+            val index = (activeIndex + offset) % backendUrls.size
+            val base = backendUrls[index]
+            val url = original.url.newBuilder()
+                .scheme(base.scheme)
+                .host(base.host)
+                .port(base.port)
+                .build()
+            try {
+                val response = chain
+                    .withConnectTimeout(2, TimeUnit.SECONDS)
+                    .proceed(original.newBuilder().url(url).build())
+                activeIndex = index
+                return@Interceptor response
+            } catch (e: IOException) {
+                lastError = e
+            }
+        }
+        throw lastError ?: IOException("Tidak ada backend yang bisa dijangkau")
+    }
+
     private val loggingInterceptor = HttpLoggingInterceptor().apply {
         level = HttpLoggingInterceptor.Level.BODY
     }
 
     val okHttpClient: OkHttpClient by lazy {
         OkHttpClient.Builder()
+            .addInterceptor(failoverInterceptor)
             .addInterceptor(authInterceptor)
             .addInterceptor(loggingInterceptor)
-            .connectTimeout(4, TimeUnit.SECONDS)
+            .connectTimeout(2, TimeUnit.SECONDS)
             .readTimeout(AppConfig.NETWORK_TIMEOUT_SECONDS, TimeUnit.SECONDS)
             .writeTimeout(AppConfig.NETWORK_TIMEOUT_SECONDS, TimeUnit.SECONDS)
             .build()
