@@ -3,7 +3,6 @@ package com.neetrust.ui.components
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -48,7 +47,6 @@ fun NeetRustBottomNav(
     NavigationBar(
         modifier = modifier
             .fillMaxWidth()
-            .height(68.dp)
             .border(width = 1.dp, color = MoriBorder, shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp))
             .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp))
             .background(MoriBgDeep),
