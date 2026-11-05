@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -37,6 +38,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
@@ -120,57 +123,43 @@ fun HomeScreen(
 ) {
     val state by viewModel.uiState.collectAsState()
 
-    Scaffold(
-        topBar = {
-            NeetRustTopBar(
-                title = AppConfig.APP_NAME,
-                canNavigateBack = false,
-                actions = {
-                    IconButton(
-                        onClick = onSearchClick,
-                        modifier = Modifier.testTag("home_search_action")
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Search,
-                            contentDescription = "Cari Anime",
-                            tint = MoriEmeraldPrimary
-                        )
-                    }
-                }
-            )
-        },
-        containerColor = MoriBgDeep,
-        modifier = Modifier.testTag("home_screen")
-    ) { padding ->
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MoriBgDeep)
+            .testTag("home_screen")
+    ) {
         when {
             state.isLoading -> {
                 LoadingState(
                     message = "Memuat anime terbaru...",
-                    modifier = Modifier.padding(padding)
+                    modifier = Modifier
+                        .statusBarsPadding()
+                        .padding(top = 56.dp)
                 )
             }
             state.errorMessage != null && state.data == null -> {
                 ErrorState(
                     message = state.errorMessage!!,
                     onRetry = { viewModel.loadHomeData() },
-                    modifier = Modifier.padding(padding)
+                    modifier = Modifier
+                        .statusBarsPadding()
+                        .padding(top = 56.dp)
                 )
             }
             state.data != null -> {
                 val data = state.data!!
                 LazyColumn(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(padding),
+                    modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(bottom = 24.dp)
                 ) {
                     if (data.banners.isNotEmpty()) {
                         item {
-                            HomeHeroBanner(
+                            HomeHeroFull(
                                 banner = data.banners.first(),
                                 onWatchClick = { onAnimeClick(data.banners.first().slug) }
                             )
-                            Spacer(modifier = Modifier.height(20.dp))
+                            Spacer(modifier = Modifier.height(8.dp))
                         }
                     }
 
@@ -220,6 +209,59 @@ fun HomeScreen(
                 }
             }
         }
+
+        HomeTopOverlay(
+            title = AppConfig.APP_NAME,
+            onSearchClick = onSearchClick,
+            modifier = Modifier.align(Alignment.TopCenter)
+        )
+    }
+}
+
+@Composable
+fun HomeTopOverlay(
+    title: String,
+    onSearchClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(MoriBgDeep.copy(alpha = 0.75f), Color.Transparent)
+                )
+            )
+            .statusBarsPadding()
+            .padding(horizontal = 16.dp)
+            .height(56.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleLarge.copy(
+                fontWeight = FontWeight.Bold,
+                fontSize = 20.sp
+            ),
+            color = MoriTextPrimary,
+            modifier = Modifier
+                .weight(1f)
+                .testTag("topbar_title")
+        )
+        IconButton(
+            onClick = onSearchClick,
+            modifier = Modifier
+                .size(40.dp)
+                .clip(CircleShape)
+                .background(MoriBgDeep.copy(alpha = 0.45f))
+                .testTag("home_search_action")
+        ) {
+            Icon(
+                imageVector = Icons.Default.Search,
+                contentDescription = "Cari Anime",
+                tint = MoriTextPrimary
+            )
+        }
     }
 }
 
@@ -257,18 +299,15 @@ fun SectionHeader(title: String, subtitle: String? = null) {
 }
 
 @Composable
-fun HomeHeroBanner(
+fun HomeHeroFull(
     banner: HomeBannerDto,
     onWatchClick: () -> Unit
 ) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp)
-            .height(200.dp)
-            .clip(RoundedCornerShape(16.dp))
+            .height(420.dp)
             .background(MoriBgCard)
-            .border(1.dp, MoriBorder, RoundedCornerShape(16.dp))
             .clickable(onClick = onWatchClick)
     ) {
         AsyncImage(
@@ -282,11 +321,11 @@ fun HomeHeroBanner(
             modifier = Modifier
                 .fillMaxSize()
                 .background(
-                    androidx.compose.ui.graphics.Brush.verticalGradient(
-                        colors = listOf(
-                            androidx.compose.ui.graphics.Color.Transparent,
-                            MoriBgDeep.copy(alpha = 0.95f)
-                        )
+                    Brush.verticalGradient(
+                        0f to MoriBgDeep.copy(alpha = 0.5f),
+                        0.3f to Color.Transparent,
+                        0.55f to Color.Transparent,
+                        1f to MoriBgDeep
                     )
                 )
         )
@@ -294,7 +333,8 @@ fun HomeHeroBanner(
         Column(
             modifier = Modifier
                 .align(Alignment.BottomStart)
-                .padding(16.dp)
+                .padding(horizontal = 16.dp)
+                .padding(bottom = 20.dp)
         ) {
             if (banner.genres.isNotEmpty()) {
                 Text(
@@ -307,24 +347,24 @@ fun HomeHeroBanner(
 
             Text(
                 text = banner.title,
-                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold, fontSize = 20.sp),
+                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold, fontSize = 26.sp),
                 color = MoriTextPrimary,
-                maxLines = 1,
+                maxLines = 2,
                 overflow = TextOverflow.Ellipsis
             )
 
             if (!banner.synopsis.isNullOrBlank()) {
-                Spacer(modifier = Modifier.height(2.dp))
+                Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = banner.synopsis,
-                    style = MaterialTheme.typography.bodyMedium.copy(fontSize = 12.sp),
+                    style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
                     color = MoriTextSecondary,
-                    maxLines = 2,
+                    maxLines = 3,
                     overflow = TextOverflow.Ellipsis
                 )
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
             Button(
                 onClick = onWatchClick,
@@ -332,13 +372,13 @@ fun HomeHeroBanner(
                     containerColor = MoriEmeraldPrimary,
                     contentColor = MoriTextInverse
                 ),
-                contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
-                shape = RoundedCornerShape(8.dp)
+                contentPadding = PaddingValues(horizontal = 18.dp, vertical = 8.dp),
+                shape = RoundedCornerShape(10.dp)
             ) {
                 Icon(
                     imageVector = Icons.Default.PlayArrow,
                     contentDescription = null,
-                    modifier = Modifier.size(16.dp)
+                    modifier = Modifier.size(18.dp)
                 )
                 Spacer(modifier = Modifier.width(6.dp))
                 Text("Tonton Sekarang", style = MaterialTheme.typography.labelLarge)
