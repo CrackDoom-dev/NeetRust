@@ -56,9 +56,11 @@ import com.neetrust.domain.model.HomeDataDto
 import com.neetrust.domain.model.LatestEpisodeDto
 import com.neetrust.ui.components.AnimeCard
 import com.neetrust.ui.components.ErrorState
+import com.neetrust.ui.components.ExploreChips
 import com.neetrust.ui.components.LoadingState
 import com.neetrust.ui.components.NeetRustTopBar
 import com.neetrust.ui.config.AppConfig
+import com.neetrust.ui.screens.discover.DiscoverTab
 import com.neetrust.ui.theme.MoriBgCard
 import com.neetrust.ui.theme.MoriBgDeep
 import com.neetrust.ui.theme.MoriBorder
@@ -119,7 +121,9 @@ fun HomeScreen(
     viewModel: HomeViewModel,
     onAnimeClick: (slug: String) -> Unit,
     onEpisodeClick: (episodeSlug: String) -> Unit,
-    onSearchClick: () -> Unit
+    onSearchClick: () -> Unit,
+    onDiscoverClick: (DiscoverTab) -> Unit = {},
+    onSourcesClick: () -> Unit = {}
 ) {
     val state by viewModel.uiState.collectAsState()
 
@@ -161,6 +165,15 @@ fun HomeScreen(
                             )
                             Spacer(modifier = Modifier.height(8.dp))
                         }
+                    }
+
+                    item {
+                        ExploreChips(
+                            onDiscoverClick = onDiscoverClick,
+                            onSourcesClick = onSourcesClick,
+                            modifier = if (data.banners.isEmpty()) Modifier.statusBarsPadding() else Modifier
+                        )
+                        Spacer(modifier = Modifier.height(20.dp))
                     }
 
                     item {

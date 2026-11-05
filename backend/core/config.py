@@ -19,4 +19,8 @@ class Settings(BaseModel):
 
     CACHE_DEFAULT_TTL: int = int(os.getenv("CACHE_DEFAULT_TTL", "300"))
 
+    SOURCE_COOLDOWN_SECONDS: int = int(os.getenv("SOURCE_COOLDOWN_SECONDS", "60"))
+    SOURCE_TIMEOUT_SECONDS: int = int(os.getenv("SOURCE_TIMEOUT_SECONDS", "25"))
+    ALLOW_PRIVATE_SOURCES: bool = os.getenv("ALLOW_PRIVATE_SOURCES", "false").lower() == "true"
+
 settings = Settings()

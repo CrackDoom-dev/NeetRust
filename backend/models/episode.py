@@ -24,3 +24,4 @@ class EpisodeStreamDetail(BaseModel):
     download_links: List[DownloadLink] = []
     prev_episode_slug: Optional[str] = None
     next_episode_slug: Optional[str] = None
+    source: Optional[str] = None

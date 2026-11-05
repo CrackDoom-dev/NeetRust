@@ -11,6 +11,7 @@ class AnimeCard(BaseModel):
     score: Optional[str] = "N/A"
     latest_episode: Optional[str] = None
     release_date: Optional[str] = None
+    source: Optional[str] = None
 
 class HomeBanner(BaseModel):
     title: str
@@ -31,6 +32,7 @@ class HomeData(BaseModel):
     banners: List[HomeBanner] = []
     latest_episodes: List[LatestEpisodeCard] = []
     popular_anime: List[AnimeCard] = []
+    source: Optional[str] = None
 
 class EpisodeListItem(BaseModel):
     title: str
@@ -51,9 +53,12 @@ class AnimeDetail(BaseModel):
     duration: Optional[str] = "24 min"
     season: Optional[str] = None
     studios: Optional[str] = None
+    released: Optional[str] = None
     genres: List[str] = []
     episodes: List[EpisodeListItem] = []
+    source: Optional[str] = None
 
 class AnimeListResponse(BaseModel):
     items: List[AnimeCard]
-    pagination: PaginationMeta
+    pagination: PaginationMeta = PaginationMeta()
+    source: Optional[str] = None

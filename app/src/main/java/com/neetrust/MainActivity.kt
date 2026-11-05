@@ -24,10 +24,15 @@ import com.neetrust.auth.SessionStore
 import com.neetrust.core.network.NetworkClient
 import com.neetrust.data.api.ApiService
 import com.neetrust.data.repository.AnimeRepository
+import com.neetrust.data.repository.DiscoverRepository
+import com.neetrust.data.repository.SourceRepository
 import com.neetrust.player.PlayerController
 import com.neetrust.ui.components.NeetRustBottomNav
 import com.neetrust.ui.components.NeetRustTab
 import com.neetrust.ui.screens.detail.DetailScreen
+import com.neetrust.ui.screens.discover.DiscoverScreen
+import com.neetrust.ui.screens.discover.DiscoverTab
+import com.neetrust.ui.screens.discover.DiscoverViewModel
 import com.neetrust.ui.screens.detail.DetailViewModel
 import com.neetrust.ui.screens.favorites.FavoritesScreen
 import com.neetrust.ui.screens.favorites.FavoritesViewModel
@@ -45,6 +50,8 @@ import com.neetrust.ui.screens.search.SearchScreen
 import com.neetrust.ui.screens.search.SearchViewModel
 import com.neetrust.ui.screens.settings.SettingsScreen
 import com.neetrust.ui.screens.settings.SettingsViewModel
+import com.neetrust.ui.screens.sources.SourcesScreen
+import com.neetrust.ui.screens.sources.SourcesViewModel
 import com.neetrust.ui.screens.splash.SplashScreen
 import com.neetrust.ui.screens.splash.SplashViewModel
 import com.neetrust.ui.theme.MoriBgDeep
@@ -57,6 +64,8 @@ sealed class AppScreen {
     data class Detail(val animeSlug: String) : AppScreen()
     data class Player(val episodeSlug: String) : AppScreen()
     object Settings : AppScreen()
+    data class Discover(val tab: DiscoverTab) : AppScreen()
+    object Sources : AppScreen()
 }
 
 class MainActivity : ComponentActivity() {
@@ -112,6 +121,9 @@ fun NeetRustApp(
     var currentScreen by remember { mutableStateOf<AppScreen>(AppScreen.Splash) }
     var currentTab by remember { mutableStateOf(NeetRustTab.HOME) }
     val screenBackStack = remember { mutableListOf<AppScreen>() }
+
+    val discoverRepository = remember { DiscoverRepository(NetworkClient.createService<ApiService>()) }
+    val sourceRepository = remember { SourceRepository(NetworkClient.createService<ApiService>()) }
 
     val homeVm = remember { lazy { HomeViewModel(animeRepository) } }
     val searchVm = remember { lazy { SearchViewModel(animeRepository) } }
@@ -173,7 +185,9 @@ fun NeetRustApp(
                                 viewModel = homeVm.value,
                                 onAnimeClick = { slug -> navigateTo(AppScreen.Detail(slug)) },
                                 onEpisodeClick = { epSlug -> navigateTo(AppScreen.Player(epSlug)) },
-                                onSearchClick = { currentTab = NeetRustTab.SEARCH }
+                                onSearchClick = { currentTab = NeetRustTab.SEARCH },
+                                onDiscoverClick = { tab -> navigateTo(AppScreen.Discover(tab)) },
+                                onSourcesClick = { navigateTo(AppScreen.Sources) }
                             )
                         }
 
@@ -256,6 +270,25 @@ fun NeetRustApp(
                     screenBackStack.clear()
                     currentScreen = AppScreen.Login
                 }
+            )
+        }
+        is AppScreen.Discover -> {
+            val discoverVm = remember { DiscoverViewModel(discoverRepository) }
+            BackHandler { navigateBack() }
+            DiscoverScreen(
+                viewModel = discoverVm,
+                initialTab = screen.tab,
+                onNavigateBack = { navigateBack() },
+                onAnimeClick = { slug -> navigateTo(AppScreen.Detail(slug)) }
+            )
+        }
+
+        is AppScreen.Sources -> {
+            val sourcesVm = remember { SourcesViewModel(sourceRepository) }
+            BackHandler { navigateBack() }
+            SourcesScreen(
+                viewModel = sourcesVm,
+                onNavigateBack = { navigateBack() }
             )
         }
     }

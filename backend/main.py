@@ -4,11 +4,13 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from core.errors import AppError, app_error_handler, generic_exception_handler
 from db.database import init_db
+from core.registry import registry
 from api.routes_anime import router as anime_router
 from api.routes_episode import router as episode_router
 from api.routes_search import router as search_router
 from api.routes_auth import router as auth_router
 from api.routes_user import router as user_router
+from api.routes_sources import router as sources_router
 
 logging.basicConfig(
     level=logging.INFO,
@@ -20,13 +22,14 @@ logger = logging.getLogger("main")
 async def lifespan(app: FastAPI):
     logger.info("Starting up NeetRust Backend Service...")
     await init_db()
+    await registry.load()
     yield
     logger.info("Shutting down NeetRust Backend Service...")
 
 app = FastAPI(
     title="NeetRust Anime API",
-    description="Backend REST API Samehadaku Scraper & Auth Service untuk aplikasi NeetRust",
-    version="1.0.0",
+    description="Backend REST API multi-sumber (scraper + failover) & Auth Service untuk aplikasi NeetRust",
+    version="1.1.0",
     lifespan=lifespan
 )
 
@@ -46,6 +49,7 @@ app.include_router(episode_router)
 app.include_router(search_router)
 app.include_router(auth_router)
 app.include_router(user_router)
+app.include_router(sources_router)
 
 @app.get("/", tags=["Health"])
 async def root():
