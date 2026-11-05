@@ -111,6 +111,12 @@ fun NeetRustApp(
     var currentTab by remember { mutableStateOf(NeetRustTab.HOME) }
     val screenBackStack = remember { mutableListOf<AppScreen>() }
 
+    val homeVm = remember { lazy { HomeViewModel(animeRepository) } }
+    val searchVm = remember { lazy { SearchViewModel(animeRepository) } }
+    val favVm = remember { lazy { FavoritesViewModel(animeRepository) } }
+    val histVm = remember { lazy { HistoryViewModel(animeRepository) } }
+    val profVm = remember { lazy { ProfileViewModel(authRepository) } }
+
     fun navigateTo(destination: AppScreen) {
         screenBackStack.add(currentScreen)
         currentScreen = destination
@@ -156,9 +162,8 @@ fun NeetRustApp(
                 Box(modifier = Modifier.padding(innerPadding)) {
                     when (currentTab) {
                         NeetRustTab.HOME -> {
-                            val homeVm = remember { HomeViewModel(animeRepository) }
                             HomeScreen(
-                                viewModel = homeVm,
+                                viewModel = homeVm.value,
                                 onAnimeClick = { slug -> navigateTo(AppScreen.Detail(slug)) },
                                 onEpisodeClick = { epSlug -> navigateTo(AppScreen.Player(epSlug)) },
                                 onSearchClick = { currentTab = NeetRustTab.SEARCH }
@@ -166,35 +171,31 @@ fun NeetRustApp(
                         }
 
                         NeetRustTab.SEARCH -> {
-                            val searchVm = remember { SearchViewModel(animeRepository) }
                             SearchScreen(
-                                viewModel = searchVm,
+                                viewModel = searchVm.value,
                                 onAnimeClick = { slug -> navigateTo(AppScreen.Detail(slug)) }
                             )
                         }
 
                         NeetRustTab.FAVORITES -> {
-                            val favVm = remember { FavoritesViewModel(animeRepository) }
                             FavoritesScreen(
-                                viewModel = favVm,
+                                viewModel = favVm.value,
                                 onAnimeClick = { slug -> navigateTo(AppScreen.Detail(slug)) },
                                 onBrowseClick = { currentTab = NeetRustTab.HOME }
                             )
                         }
 
                         NeetRustTab.HISTORY -> {
-                            val histVm = remember { HistoryViewModel(animeRepository) }
                             HistoryScreen(
-                                viewModel = histVm,
+                                viewModel = histVm.value,
                                 onEpisodeClick = { epSlug -> navigateTo(AppScreen.Player(epSlug)) },
                                 onBrowseClick = { currentTab = NeetRustTab.HOME }
                             )
                         }
 
                         NeetRustTab.PROFILE -> {
-                            val profVm = remember { ProfileViewModel(authRepository) }
                             ProfileScreen(
-                                viewModel = profVm,
+                                viewModel = profVm.value,
                                 onNavigateToSettings = { navigateTo(AppScreen.Settings) },
                                 onNavigateToFavorites = { currentTab = NeetRustTab.FAVORITES },
                                 onNavigateToHistory = { currentTab = NeetRustTab.HISTORY },
