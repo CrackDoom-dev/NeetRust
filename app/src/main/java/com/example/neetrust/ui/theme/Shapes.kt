@@ -1,13 +1,18 @@
-// [KATALOG] shared.ui.theme.Shapes
+// [KATALOG] ui.theme.Shapes
 package com.example.neetrust.ui.theme
 
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Shapes
-import androidx.compose.ui.unit.dp
+import com.example.neetrust.ui.config.CornerPreset
 
-val NeetRustShapes = Shapes(
-    small = RoundedCornerShape(8.dp),
-    medium = RoundedCornerShape(12.dp),
-    large = RoundedCornerShape(16.dp),
-    extraLarge = RoundedCornerShape(24.dp)
+/** Semua bentuk Material mengikuti preset corner (SHARP, MODERN, ROUND). */
+fun neetRustShapes(corner: CornerPreset): Shapes = Shapes(
+    extraSmall = RoundedCornerShape(corner.radiusL / 2),
+    small = RoundedCornerShape(corner.radiusL),
+    medium = RoundedCornerShape(corner.radiusL),
+    large = RoundedCornerShape(corner.radiusXL),
+    extraLarge = RoundedCornerShape(corner.radiusXL)
 )
+
+/** Alias lama, dipertahankan agar kode lama tetap terkompilasi. */
+val NeetRustShapes: Shapes = neetRustShapes(CornerPreset.MODERN)
