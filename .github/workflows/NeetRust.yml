@@ -1,0 +1,126 @@
+name: Build APK
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    env:
+      KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+      STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
+      KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+      KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Setup Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v6
+        with:
+          gradle-version: 9.3.1
+
+      - name: Tentukan Versi Rilis Otomatis
+        id: versioning
+        run: |
+          GIT_LATEST=$(git tag -l "v*" 2>/dev/null | grep -E '^v[0-9]+(\.[0-9]+)*$' | sort -V | tail -n 1 || echo "")
+          GH_LATEST=""
+          if command -v gh &> /dev/null; then
+            GH_LATEST=$(gh release list --limit 50 --json tagName -q '.[].tagName' 2>/dev/null | grep -E '^v[0-9]+(\.[0-9]+)*$' | sort -V | tail -n 1 || echo "")
+          fi
+
+          LATEST_TAG=$(printf "%s\n%s\n" "$GIT_LATEST" "$GH_LATEST" | grep -v '^$' | sort -V | tail -n 1 || echo "")
+          echo "Tag rilis tertinggi terdeteksi: '$LATEST_TAG'"
+
+          BASE_VC=$(grep -E 'versionCode\s*=' app/build.gradle.kts | head -n 1 | sed -E 's/[^0-9]//g')
+          BASE_VN=$(grep -E 'versionName\s*=' app/build.gradle.kts | head -n 1 | sed -E 's/.*"([^"]+)".*/\1/')
+          BASE_VC=${BASE_VC:-7}
+          BASE_VN=${BASE_VN:-"1.5"}
+
+          if [ "${{ github.ref_type }}" = "tag" ]; then
+            RAW_TAG="${{ github.ref_name }}"
+            CLEAN_TAG="${RAW_TAG#v}"
+            V_NAME="$CLEAN_TAG"
+            MAJOR=$(echo "$CLEAN_TAG" | cut -d. -f1)
+            MINOR=$(echo "$CLEAN_TAG" | cut -d. -f2)
+            [ -z "$MAJOR" ] && MAJOR=1
+            [ -z "$MINOR" ] && MINOR=0
+            V_CODE=$((MAJOR * 1000 + MINOR))
+          elif [ -n "$LATEST_TAG" ]; then
+            CLEAN_TAG="${LATEST_TAG#v}"
+            MAJOR=$(echo "$CLEAN_TAG" | cut -d. -f1)
+            MINOR=$(echo "$CLEAN_TAG" | cut -d. -f2)
+            [ -z "$MAJOR" ] && MAJOR=1
+            [ -z "$MINOR" ] && MINOR=4
+            NEXT_MINOR=$((MINOR + 1))
+            V_NAME="${MAJOR}.${NEXT_MINOR}"
+            V_CODE=$((MAJOR * 1000 + NEXT_MINOR))
+          else
+            V_NAME="$BASE_VN"
+            V_CODE="$BASE_VC"
+          fi
+
+          if [ "$V_CODE" -lt "$BASE_VC" ]; then
+            V_CODE="$BASE_VC"
+            V_NAME="$BASE_VN"
+          fi
+
+          echo "Target Rilis: Version Name = $V_NAME | Version Code = $V_CODE | Tag = v$V_NAME"
+          echo "VERSION_NAME=$V_NAME" >> $GITHUB_ENV
+          echo "VERSION_CODE=$V_CODE" >> $GITHUB_ENV
+          echo "version_name=$V_NAME" >> $GITHUB_OUTPUT
+          echo "version_code=$V_CODE" >> $GITHUB_OUTPUT
+
+          sed -i "s/versionCode = .*/versionCode = $V_CODE/" app/build.gradle.kts
+          sed -i "s/versionName = .*/versionName = \"$V_NAME\"/" app/build.gradle.kts
+
+      - name: Release build (Keystore)
+        if: env.KEYSTORE_BASE64 != ''
+        run: |
+          echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.jks"
+          export KEYSTORE_PATH="$RUNNER_TEMP/release.jks"
+          gradle assembleRelease --no-daemon
+          mv app/build/outputs/apk/release/app-release.apk NetRust.apk
+
+      - name: Debug build (Fallback)
+        if: env.KEYSTORE_BASE64 == ''
+        run: |
+          keytool -genkeypair -keystore debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
+          gradle assembleDebug --no-daemon
+          mv app/build/outputs/apk/debug/app-debug.apk NetRust.apk
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: NeetRust
+          path: NeetRust.apk
+
+      - name: Buat Rilis GitHub Otomatis
+        uses: softprops/action-gh-release@v3
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: v${{ env.VERSION_NAME }}
+          name: NetRust v${{ env.VERSION_NAME }}
+          body: |
+            ### NetRust v${{ env.VERSION_NAME }} (${{ env.VERSION_CODE }})
+            Rilis otomatis dari commit `${{ github.sha }}`.
+
+            - **Nama Versi:** ${{ env.VERSION_NAME }}
+            - **Kode Versi:** ${{ env.VERSION_CODE }}
+          files: NeetRust.apk
+          generate_release_notes: true
