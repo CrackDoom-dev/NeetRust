@@ -1,4 +1,3 @@
-# [KATALOG] scrapers.samehadaku.episode
 import logging
 import base64
 import re
@@ -28,13 +27,11 @@ async def scrape_episode_stream(slug: str) -> EpisodeStreamDetail:
     title_el = doc.css_first(selectors.EPISODE_TITLE_HEADER)
     title = title_el.get_text(strip=True) if title_el else slug
 
-    # Iframe default stream URL
     iframe_el = doc.css_first(selectors.EPISODE_STREAM_IFRAME)
     default_stream_url = ""
     if iframe_el:
         default_stream_url = iframe_el.get("src") or iframe_el.get("data-src") or ""
 
-    # Streaming servers
     servers: list[VideoServer] = []
     server_elements = doc.css(selectors.EPISODE_SERVER_LIST)
     idx = 1
@@ -44,12 +41,11 @@ async def scrape_episode_stream(slug: str) -> EpisodeStreamDetail:
         post_id = btn.get("data-post") or btn.get("data-nume") or str(idx)
         content_data = btn.get("data-content") or ""
 
-        # Decode base64 data-content if present
         stream_url = default_stream_url
         if content_data:
             try:
                 decoded = base64.b64decode(content_data).decode("utf-8")
-                # find src="..."
+
                 match = re.search(r'src=["\']([^"\']+)["\']', decoded)
                 if match:
                     stream_url = match.group(1)
@@ -74,13 +70,11 @@ async def scrape_episode_stream(slug: str) -> EpisodeStreamDetail:
             is_embed=True
         ))
 
-    # Navigation prev/next
     prev_el = doc.css_first(selectors.EPISODE_NAV_PREV)
     next_el = doc.css_first(selectors.EPISODE_NAV_NEXT)
     prev_slug = extract_slug(prev_el.get("href", "")) if prev_el else None
     next_slug = extract_slug(next_el.get("href", "")) if next_el else None
 
-    # Download mirrors
     download_links: list[DownloadLink] = []
     dl_box = doc.css_first(selectors.EPISODE_DOWNLOAD_CONTAINER)
     if dl_box:

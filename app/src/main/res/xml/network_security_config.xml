@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- [KATALOG] androidApp.network_security_config -->
+
 <network-security-config>
     <base-config cleartextTrafficPermitted="true">
         <trust-anchors>

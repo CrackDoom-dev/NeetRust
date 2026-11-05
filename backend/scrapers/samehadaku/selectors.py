@@ -1,18 +1,15 @@
-# [KATALOG] scrapers.samehadaku.selectors
-
 class SamehadakuSelectors:
     """
     Kamus terpusat untuk semua CSS Selector situs Samehadaku.
     Jika layout situs web berubah di kemudian hari, ubah selector HANYA di file ini.
     """
-    # === HOME PAGE ===
+
     HOME_BANNER_CONTAINER = ".slider-content .owl-item, .hero-slider .item, .top-slider .swiper-slide"
     HOME_BANNER_TITLE = ".title, .entry-title, h2, h3"
     HOME_BANNER_THUMB = "img"
     HOME_BANNER_URL = "a"
     HOME_BANNER_GENRE = ".genre, .genres a"
 
-    # Home - Latest Episode Releases
     LATEST_EPISODES_CONTAINER = ".post-show ul li, .widget_latest_episodelist ul li, .latest-updates article, .relat ul li"
     LATEST_EPISODE_TITLE = ".entry-title a, h2 a, .title a"
     LATEST_EPISODE_THUMB = ".thumb img, img"
@@ -20,14 +17,12 @@ class SamehadakuSelectors:
     LATEST_EPISODE_RELEASE_TIME = ".date, .dtla .posted"
     LATEST_EPISODE_URL = "a"
 
-    # Home - Popular / Top Rated
     POPULAR_CONTAINER = ".widget_topanime ul li, .top-anime-item, .pop-anm ul li"
     POPULAR_TITLE = ".title a, h2 a, .entry-title a"
     POPULAR_THUMB = "img"
     POPULAR_RATING = ".score, .rating, .numscore"
     POPULAR_URL = "a"
 
-    # === ANIME DIRECTORY / LIST ===
     ANIME_LIST_CONTAINER = ".animepost, article.animpost, .animpost"
     ANIME_LIST_TITLE = ".title, h2, .entry-title"
     ANIME_LIST_THUMB = "img"
@@ -38,7 +33,6 @@ class SamehadakuSelectors:
     PAGINATION_NEXT = ".pagination .next, .page-numbers.next, a.next"
     PAGINATION_CURRENT = ".pagination .current, .page-numbers.current, span.current"
 
-    # === ANIME DETAIL ===
     DETAIL_TITLE = ".entry-title, .infoanime h1, .infox h1"
     DETAIL_THUMB = ".thumb img, .poster img"
     DETAIL_SYNOPSIS = ".entry-content-single, .desc, .synopsis, .entry-content"
@@ -50,7 +44,6 @@ class SamehadakuSelectors:
     DETAIL_EPISODE_DATE = ".date"
     DETAIL_INFO_CONTAINER = ".info-content span, .spe span"
 
-    # === EPISODE STREAMING & SERVERS ===
     EPISODE_STREAM_IFRAME = "#server, #player_embed iframe, .player-embed iframe, .responsive-embed-stream iframe"
     EPISODE_SERVER_LIST = "#server ul li, .server-item, .server_item"
     EPISODE_SERVER_BUTTON = "div[data-post], .btn-server, a[data-post]"
@@ -60,7 +53,6 @@ class SamehadakuSelectors:
     EPISODE_NAV_ALL = ".naveps .nvs.nv-all a, a.all-eps"
     EPISODE_DOWNLOAD_CONTAINER = ".download-eps, .list-download, .download"
 
-    # === SEARCH ===
     SEARCH_CONTAINER = ".animepost, article.animpost, .search-item"
     SEARCH_TITLE = ".title, h2, .entry-title"
     SEARCH_THUMB = "img"

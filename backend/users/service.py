@@ -1,4 +1,3 @@
-# [KATALOG] users.service
 import aiosqlite
 import logging
 from core.errors import NotFoundError
@@ -27,7 +26,6 @@ async def get_or_create_user(db: aiosqlite.Connection, user_data: dict) -> UserP
                 avatar_url=row["avatar_url"]
             )
 
-    # Insert new user
     await db.execute(
         "INSERT INTO users (id, email, name, bio, avatar_url) VALUES (?, ?, ?, ?, ?)",
         (user_id, email, name, "", picture)
@@ -62,7 +60,6 @@ async def update_user_profile(db: aiosqlite.Connection, user_id: str, update: Us
     await db.commit()
     return UserProfile(id=user_id, email=user.email, name=new_name, bio=new_bio, avatar_url=new_avatar)
 
-# === FAVORITES SERVICE ===
 async def add_favorite(db: aiosqlite.Connection, user_id: str, req: FavoriteRequest) -> dict:
     await db.execute("""
         INSERT INTO favorites (user_id, anime_slug, title, poster, score, status)
@@ -100,7 +97,6 @@ async def remove_favorite(db: aiosqlite.Connection, user_id: str, anime_slug: st
     await db.commit()
     return {"message": "Berhasil dihapus dari favorit", "anime_slug": anime_slug}
 
-# === HISTORY SERVICE ===
 async def save_history(db: aiosqlite.Connection, user_id: str, req: HistoryRequest) -> dict:
     await db.execute("""
         INSERT INTO history (user_id, anime_slug, anime_title, episode_slug, episode_number, poster, last_position_seconds, duration_seconds, updated_at)

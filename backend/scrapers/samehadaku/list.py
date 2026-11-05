@@ -1,4 +1,3 @@
-# [KATALOG] scrapers.samehadaku.list
 import logging
 from core.config import settings
 from core.fetcher import fetch_page
@@ -43,7 +42,7 @@ async def scrape_anime_list(page: int = 1, genre: str = None) -> AnimeListRespon
             img_src = ""
             if img_el:
                 img_src = img_el.get("src") or img_el.get("data-src") or ""
-            
+
             items.append(AnimeCard(
                 title=title,
                 slug=extract_slug(href),

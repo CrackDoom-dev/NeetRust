@@ -1,4 +1,3 @@
-# [KATALOG] scrapers.samehadaku.home
 import logging
 import re
 from core.config import settings
@@ -23,8 +22,7 @@ async def scrape_home() -> HomeData:
 
     url = settings.SAMEHADAKU_BASE_URL
     page = await fetch_page(url)
-    
-    # 1. Scrape Banners
+
     banners: list[HomeBanner] = []
     banner_elements = page.css(selectors.HOME_BANNER_CONTAINER)
     for el in banner_elements:
@@ -32,7 +30,7 @@ async def scrape_home() -> HomeData:
         img_el = el.select_one(selectors.HOME_BANNER_THUMB)
         link_el = el.select_one(selectors.HOME_BANNER_URL)
         genre_els = el.select(selectors.HOME_BANNER_GENRE)
-        
+
         if title_el and link_el:
             title = title_el.get_text(strip=True)
             href = link_el.get("href", "")
@@ -45,7 +43,6 @@ async def scrape_home() -> HomeData:
                 genres=genres
             ))
 
-    # 2. Scrape Latest Released Episodes
     latest_episodes: list[LatestEpisodeCard] = []
     ep_elements = page.css(selectors.LATEST_EPISODES_CONTAINER)
     for el in ep_elements[:20]:
@@ -61,10 +58,10 @@ async def scrape_home() -> HomeData:
             img_src = ""
             if img_el:
                 img_src = img_el.get("src") or img_el.get("data-src") or ""
-            
+
             ep_num = ep_el.get_text(strip=True) if ep_el else "Ep ?"
             rel_time = date_el.get_text(strip=True) if date_el else "Baru saja"
-            
+
             latest_episodes.append(LatestEpisodeCard(
                 title=raw_title,
                 episode_slug=extract_slug(href),
@@ -73,7 +70,6 @@ async def scrape_home() -> HomeData:
                 release_time=rel_time
             ))
 
-    # 3. Scrape Popular Anime
     popular_anime: list[AnimeCard] = []
     pop_elements = page.css(selectors.POPULAR_CONTAINER)
     for el in pop_elements[:15]:

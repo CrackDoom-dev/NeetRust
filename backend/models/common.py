@@ -1,4 +1,3 @@
-# [KATALOG] models.common
 from typing import Any, Generic, List, Optional, TypeVar
 from pydantic import BaseModel
 

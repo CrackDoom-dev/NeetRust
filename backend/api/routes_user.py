@@ -1,4 +1,3 @@
-# [KATALOG] api.routes_user
 from fastapi import APIRouter, Depends, Header
 import aiosqlite
 import logging

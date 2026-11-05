@@ -1,4 +1,3 @@
-# [KATALOG] core.fetcher
 import logging
 from typing import Optional
 from bs4 import BeautifulSoup
@@ -7,7 +6,6 @@ from core.errors import ScrapingError
 
 logger = logging.getLogger("core.fetcher")
 
-# Realistic browser headers
 DEFAULT_HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36",
     "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
@@ -34,8 +32,7 @@ async def fetch_page(url: str, timeout: int = 15) -> ParsedPage:
     dengan fallback otomatis ke httpx + BeautifulSoup jika Scrapling gagal atau tidak tersedia.
     """
     logger.info(f"Fetching URL: {url}")
-    
-    # 1. Coba menggunakan Scrapling
+
     try:
         from scrapling import Fetcher
         fetcher = Fetcher()
@@ -48,7 +45,6 @@ async def fetch_page(url: str, timeout: int = 15) -> ParsedPage:
     except Exception as e:
         logger.warning(f"Scrapling fetch attempt failed or not available for {url}: {e}. Falling back to httpx.")
 
-    # 2. Fallback menggunakan HTTPX
     try:
         async with httpx.AsyncClient(headers=DEFAULT_HEADERS, follow_redirects=True, timeout=timeout) as client:
             resp = await client.get(url)

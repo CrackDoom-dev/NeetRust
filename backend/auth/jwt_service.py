@@ -1,4 +1,3 @@
-# [KATALOG] auth.jwt_service
 import datetime
 from typing import Optional
 from jose import JWTError, jwt

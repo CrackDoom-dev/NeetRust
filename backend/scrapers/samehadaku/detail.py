@@ -1,4 +1,3 @@
-# [KATALOG] scrapers.samehadaku.detail
 import logging
 from core.config import settings
 from core.fetcher import fetch_page
@@ -38,11 +37,9 @@ async def scrape_anime_detail(slug: str) -> AnimeDetail:
     score_el = doc.css_first(selectors.DETAIL_SCORE)
     score = score_el.get_text(strip=True) if score_el else "N/A"
 
-    # Genres
     genre_els = doc.css(selectors.DETAIL_GENRES)
     genres = [g.get_text(strip=True) for g in genre_els if g.get_text(strip=True)]
 
-    # Episode list
     episodes: list[EpisodeListItem] = []
     ep_elements = doc.css(selectors.DETAIL_EPISODES_CONTAINER)
     for el in ep_elements:

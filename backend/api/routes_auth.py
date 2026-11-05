@@ -1,4 +1,3 @@
-# [KATALOG] api.routes_auth
 from fastapi import APIRouter, Depends
 import aiosqlite
 import logging
@@ -16,10 +15,10 @@ async def auth_google(payload: GoogleAuthRequest, db: aiosqlite.Connection = Dep
     """Verifikasi Google ID token, daftarkan atau login pengguna, dan kembalikan token JWT."""
     user_info = await verify_google_token(payload.id_token)
     user = await get_or_create_user(db, user_info)
-    
+
     access_token = create_access_token(user.id, user.email)
     refresh_token = create_refresh_token(user.id, user.email)
-    
+
     return TokenResponse(
         access_token=access_token,
         refresh_token=refresh_token,
@@ -33,7 +32,7 @@ async def auth_refresh(payload: TokenRefreshRequest, db: aiosqlite.Connection = 
     decoded = verify_token(payload.refresh_token, expected_type="refresh")
     user_id = decoded["sub"]
     user = await get_user_by_id(db, user_id)
-    
+
     new_access_token = create_access_token(user.id, user.email)
     return {
         "access_token": new_access_token,

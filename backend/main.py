@@ -1,4 +1,3 @@
-# [KATALOG] main
 import logging
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
@@ -11,7 +10,6 @@ from api.routes_search import router as search_router
 from api.routes_auth import router as auth_router
 from api.routes_user import router as user_router
 
-# Configure structured logging
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(name)s - %(message)s"
@@ -32,7 +30,6 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# CORS middleware
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -41,11 +38,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Register uniform error handlers
 app.add_exception_handler(AppError, app_error_handler)
 app.add_exception_handler(Exception, generic_exception_handler)
 
-# Mount API Routers
 app.include_router(anime_router)
 app.include_router(episode_router)
 app.include_router(search_router)

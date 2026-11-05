@@ -1,4 +1,3 @@
-# [KATALOG] scrapers.samehadaku.search
 import logging
 from core.config import settings
 from core.fetcher import fetch_page

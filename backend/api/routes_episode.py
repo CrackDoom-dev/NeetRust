@@ -1,4 +1,3 @@
-# [KATALOG] api.routes_episode
 from fastapi import APIRouter
 from models.episode import EpisodeStreamDetail
 from scrapers.samehadaku.episode import scrape_episode_stream

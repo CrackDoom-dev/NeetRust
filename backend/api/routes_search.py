@@ -1,4 +1,3 @@
-# [KATALOG] api.routes_search
 from fastapi import APIRouter, Query
 from models.anime import AnimeCard
 from scrapers.samehadaku.search import search_anime

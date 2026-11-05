@@ -1,4 +1,3 @@
-# [KATALOG] models.anime
 from typing import List, Optional
 from pydantic import BaseModel
 from models.common import PaginationMeta

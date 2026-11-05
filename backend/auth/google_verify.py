@@ -1,4 +1,3 @@
-# [KATALOG] auth.google_verify
 import logging
 from google.oauth2 import id_token
 from google.auth.transport import requests
@@ -15,18 +14,16 @@ async def verify_google_token(token_string: str) -> dict:
     try:
         request_adapter = requests.Request()
         audience = settings.GOOGLE_CLIENT_ID if settings.GOOGLE_CLIENT_ID else None
-        
-        # Verify using Google auth library
+
         id_info = id_token.verify_oauth2_token(
             token_string,
             request_adapter,
             audience=audience
         )
-        
-        # Issuer check
+
         if id_info.get("iss") not in ["accounts.google.com", "https://accounts.google.com"]:
             raise UnauthorizedError("Penerbit token Google tidak valid")
-            
+
         return {
             "google_id": id_info.get("sub"),
             "email": id_info.get("email"),

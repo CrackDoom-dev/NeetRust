@@ -1,4 +1,3 @@
-# [KATALOG] db.database
 import aiosqlite
 import logging
 from core.config import settings
@@ -16,7 +15,7 @@ async def get_db():
 async def init_db():
     logger.info(f"Initializing SQLite database at: {settings.SQLITE_DB_PATH}")
     async with aiosqlite.connect(settings.SQLITE_DB_PATH) as db:
-        # Users Table
+
         await db.execute("""
             CREATE TABLE IF NOT EXISTS users (
                 id TEXT PRIMARY KEY,
@@ -27,8 +26,7 @@ async def init_db():
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
-        
-        # Favorites Table
+
         await db.execute("""
             CREATE TABLE IF NOT EXISTS favorites (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -44,7 +42,6 @@ async def init_db():
             )
         """)
 
-        # History Table
         await db.execute("""
             CREATE TABLE IF NOT EXISTS history (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,

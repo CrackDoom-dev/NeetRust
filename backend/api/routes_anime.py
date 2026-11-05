@@ -1,4 +1,3 @@
-# [KATALOG] api.routes_anime
 from fastapi import APIRouter, Query
 from typing import Optional
 from models.anime import HomeData, AnimeDetail, AnimeListResponse

@@ -1,4 +1,3 @@
-# [KATALOG] core.cache
 import time
 import threading
 import logging
