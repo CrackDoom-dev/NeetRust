@@ -36,7 +36,14 @@ enum class BackgroundPreset(val label: String) {
 }
 
 object AppConfig {
-    const val BACKEND_BASE_URL: String = "http://10.0.2.2:8000"
+    // Daftar alamat backend. Aplikasi mencoba berurutan dan otomatis
+    // berpindah ke alamat berikutnya kalau yang sebelumnya tidak bisa dijangkau.
+    val BACKEND_BASE_URLS: List<String> = listOf(
+        "http://127.0.0.1:8000",      // backend di Termux (HP yang sama)
+        "http://192.168.1.10:8000",   // backend di komputer (ganti dengan IP LAN-mu)
+        "http://10.0.2.2:8000"        // emulator Android
+    )
+    val BACKEND_BASE_URL: String get() = BACKEND_BASE_URLS.first()
     const val NETWORK_TIMEOUT_SECONDS: Long = 15L
 
     const val APP_NAME: String = "NeetRust"
