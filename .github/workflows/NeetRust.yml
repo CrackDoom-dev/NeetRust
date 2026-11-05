@@ -106,8 +106,8 @@ jobs:
       - name: Upload Artifact
         uses: actions/upload-artifact@v7
         with:
-          name: NeetRust
-          path: NeetRust.apk
+          name: NetRust
+          path: NetRust.apk
 
       - name: Buat Rilis GitHub Otomatis
         uses: softprops/action-gh-release@v3
@@ -115,12 +115,12 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: v${{ env.VERSION_NAME }}
-          name: NeetRust v${{ env.VERSION_NAME }}
+          name: NetRust v${{ env.VERSION_NAME }}
           body: |
-            ### NeetRust v${{ env.VERSION_NAME }} (${{ env.VERSION_CODE }})
+            ### NetRust v${{ env.VERSION_NAME }} (${{ env.VERSION_CODE }})
             Rilis otomatis dari commit `${{ github.sha }}`.
 
             - **Nama Versi:** ${{ env.VERSION_NAME }}
             - **Kode Versi:** ${{ env.VERSION_CODE }}
-          files: NeetRust.apk
+          files: NetRust.apk
           generate_release_notes: true
