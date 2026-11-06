@@ -33,12 +33,14 @@ import androidx.compose.material.icons.filled.ClosedCaptionDisabled
 import androidx.compose.material.icons.filled.Dns
 import androidx.compose.material.icons.filled.Forward10
 import androidx.compose.material.icons.filled.HighQuality
+import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PictureInPicture
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Replay10
 import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material.icons.filled.SkipPrevious
+import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -80,6 +82,7 @@ import com.neetrust.domain.model.EpisodeStreamDto
 import com.neetrust.domain.model.VideoServerDto
 import com.neetrust.player.PlayerController
 import com.neetrust.ui.config.AppConfig
+import com.neetrust.ui.theme.MoriAmberAccent
 import com.neetrust.ui.theme.MoriBgCard
 import com.neetrust.ui.theme.MoriBgDeep
 import com.neetrust.ui.theme.MoriBorder
@@ -136,12 +139,19 @@ class PlayerViewModel(
 
                     val urlToPlay = server?.streamUrl ?: stream.defaultStreamUrl ?: ""
                     if (urlToPlay.isNotBlank()) {
-                        playerController.prepareAndPlay(
-                            mediaUrl = urlToPlay,
-                            startPositionMs = savedPosSec * 1000L,
-                            serverName = server?.serverName ?: "Server Utama",
-                            quality = server?.quality ?: "720p"
-                        )
+                        if (server?.isEmbed == true) {
+                            playerController.updateServerAndQuality(
+                                serverName = server.serverName,
+                                quality = server.quality
+                            )
+                        } else {
+                            playerController.prepareAndPlay(
+                                mediaUrl = urlToPlay,
+                                startPositionMs = savedPosSec * 1000L,
+                                serverName = server?.serverName ?: "Server Utama",
+                                quality = server?.quality ?: "720p"
+                            )
+                        }
                     }
                 },
                 onFailure = { err ->
@@ -158,13 +168,21 @@ class PlayerViewModel(
     fun selectServer(server: VideoServerDto) {
         val stream = _uiState.value.streamDetail ?: return
         _uiState.value = _uiState.value.copy(selectedServer = server, selectedQuality = server.quality)
-        val currentMs = playerController.state.value.currentPositionMs
-        playerController.prepareAndPlay(
-            mediaUrl = server.streamUrl,
-            startPositionMs = currentMs,
-            serverName = server.serverName,
-            quality = server.quality
-        )
+        if (!server.isEmbed) {
+            val currentMs = playerController.state.value.currentPositionMs
+            playerController.prepareAndPlay(
+                mediaUrl = server.streamUrl,
+                startPositionMs = currentMs,
+                serverName = server.serverName,
+                quality = server.quality
+            )
+        } else {
+            playerController.getPlayer().pause()
+            playerController.updateServerAndQuality(
+                serverName = server.serverName,
+                quality = server.quality
+            )
+        }
     }
 
     fun selectQuality(quality: String) {
@@ -214,6 +232,10 @@ fun PlayerScreen(
     var areControlsVisible by remember { mutableStateOf(true) }
     var showServerMenu by remember { mutableStateOf(false) }
     var showQualityMenu by remember { mutableStateOf(false) }
+    var isWebPlayerMode by remember { mutableStateOf(false) }
+
+    val isEmbed = state.selectedServer?.isEmbed == true || isWebPlayerMode
+    val currentStreamUrl = state.selectedServer?.streamUrl ?: state.streamDetail?.defaultStreamUrl.orEmpty()
 
     LaunchedEffect(areControlsVisible, playbackState.isPlaying) {
         if (areControlsVisible && playbackState.isPlaying) {
@@ -229,8 +251,12 @@ fun PlayerScreen(
     }
 
     BackHandler {
-        viewModel.saveProgress()
-        onNavigateBack()
+        if (isWebPlayerMode) {
+            isWebPlayerMode = false
+        } else {
+            viewModel.saveProgress()
+            onNavigateBack()
+        }
     }
 
     Box(
@@ -245,16 +271,44 @@ fun PlayerScreen(
             }
             .testTag("player_screen")
     ) {
-        AndroidView(
-            factory = { ctx ->
-                PlayerView(ctx).apply {
-                    player = viewModel.playerController.getPlayer()
-                    useController = false
-                    keepScreenOn = true
-                }
-            },
-            modifier = Modifier.fillMaxSize()
-        )
+        if (isEmbed && currentStreamUrl.isNotBlank()) {
+            AndroidView(
+                factory = { ctx ->
+                    android.webkit.WebView(ctx).apply {
+                        settings.javaScriptEnabled = true
+                        settings.domStorageEnabled = true
+                        settings.mediaPlaybackRequiresUserGesture = false
+                        settings.loadWithOverviewMode = true
+                        settings.useWideViewPort = true
+                        settings.allowContentAccess = true
+                        webViewClient = object : android.webkit.WebViewClient() {
+                            override fun shouldOverrideUrlLoading(view: android.webkit.WebView?, request: android.webkit.WebResourceRequest?): Boolean {
+                                return false
+                            }
+                        }
+                        webChromeClient = android.webkit.WebChromeClient()
+                        loadUrl(currentStreamUrl)
+                    }
+                },
+                update = { webView ->
+                    if (webView.url != currentStreamUrl && currentStreamUrl.isNotBlank()) {
+                        webView.loadUrl(currentStreamUrl)
+                    }
+                },
+                modifier = Modifier.fillMaxSize()
+            )
+        } else {
+            AndroidView(
+                factory = { ctx ->
+                    PlayerView(ctx).apply {
+                        player = viewModel.playerController.getPlayer()
+                        useController = false
+                        keepScreenOn = true
+                    }
+                },
+                modifier = Modifier.fillMaxSize()
+            )
+        }
 
         AnimatedVisibility(
             visible = areControlsVisible || !playbackState.isPlaying,
@@ -296,6 +350,32 @@ fun PlayerScreen(
                         color = Color.White,
                         modifier = Modifier.weight(1f)
                     )
+
+                    IconButton(
+                        onClick = {
+                            isWebPlayerMode = !isWebPlayerMode
+                            if (isWebPlayerMode) {
+                                viewModel.playerController.getPlayer().pause()
+                            } else {
+                                val url = state.selectedServer?.streamUrl ?: state.streamDetail?.defaultStreamUrl.orEmpty()
+                                if (url.isNotBlank()) {
+                                    viewModel.playerController.prepareAndPlay(
+                                        mediaUrl = url,
+                                        startPositionMs = viewModel.playerController.state.value.currentPositionMs,
+                                        serverName = state.selectedServer?.serverName ?: "Server Utama",
+                                        quality = state.selectedQuality
+                                    )
+                                }
+                            }
+                        },
+                        modifier = Modifier.testTag("player_web_mode_toggle")
+                    ) {
+                        Icon(
+                            imageVector = if (isEmbed) Icons.Default.Language else Icons.Default.Videocam,
+                            contentDescription = if (isEmbed) "Player Web Aktif" else "Player Native Aktif",
+                            tint = if (isEmbed) MoriAmberAccent else Color.White
+                        )
+                    }
 
                     IconButton(
                         onClick = {
@@ -404,7 +484,20 @@ fun PlayerScreen(
                                 textAlign = androidx.compose.ui.text.style.TextAlign.Center
                             )
                             Spacer(modifier = Modifier.height(16.dp))
-                            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Button(
+                                    onClick = {
+                                        isWebPlayerMode = true
+                                        viewModel.playerController.getPlayer().pause()
+                                    },
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = MoriAmberAccent,
+                                        contentColor = MoriTextInverse
+                                    ),
+                                    shape = RoundedCornerShape(8.dp)
+                                ) {
+                                    Text("Player Web")
+                                }
                                 Button(
                                     onClick = { showServerMenu = true },
                                     colors = ButtonDefaults.buttonColors(
@@ -413,7 +506,7 @@ fun PlayerScreen(
                                     ),
                                     shape = RoundedCornerShape(8.dp)
                                 ) {
-                                    Text("Pilih Server Lain")
+                                    Text("Pilih Server")
                                 }
                                 OutlinedButton(
                                     onClick = { viewModel.playerController.retry() },

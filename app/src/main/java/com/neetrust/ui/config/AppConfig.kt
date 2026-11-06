@@ -46,6 +46,14 @@ object AppConfig {
     val BACKEND_BASE_URL: String get() = BACKEND_BASE_URLS.first()
     const val NETWORK_TIMEOUT_SECONDS: Long = 15L
 
+    const val WAJIK_ANIME_API_URL: String = "https://wajik-anime-api.vercel.app"
+    val WAJIK_FALLBACK_URLS: List<String> = listOf(
+        "https://wajik-anime-api.vercel.app",
+        "http://10.0.2.2:3001",
+        "http://127.0.0.1:3001"
+    )
+    const val JIKAN_ANIME_API_URL: String = "https://api.jikan.moe/v4"
+
     const val APP_NAME: String = "NeetRust"
     const val APP_TAGLINE: String = "Nonton anime sub Indo, tanpa ribet."
     const val APP_VERSION_LABEL: String = "v1.0.0 (Release)"
@@ -58,7 +66,7 @@ object AppConfig {
     const val SPLASH_TITLE: String = "NeetRust"
     const val SPLASH_SUBTITLE: String = "Nonton anime sub Indo, tanpa ribet."
 
-    const val DEFAULT_AVATAR_URL: String = "https://images.unsplash.com/photo-1578632767115-351597cf2477?w=150"
+    const val DEFAULT_AVATAR_URL: String = "https://cdn.myanimelist.net/images/characters/9/131317.jpg"
     const val GUEST_USER_NAME: String = "Pengguna Tamu"
     const val GUEST_USER_BIO: String = "Menjelajah anime dalam mode tamu."
     const val GUEST_USER_ID: String = "guest_user"

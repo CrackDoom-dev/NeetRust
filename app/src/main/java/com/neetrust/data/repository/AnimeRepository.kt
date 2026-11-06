@@ -30,6 +30,9 @@ class AnimeRepository(
     private val logger = AppLogger.of("AnimeRepository")
     private val localPrefs: SharedPreferences = context.getSharedPreferences("neetrust_local_data", Context.MODE_PRIVATE)
 
+    private val wajikClient = com.neetrust.data.api.WajikAnimeClient()
+    private val jikanClient = com.neetrust.data.api.JikanAnimeClient()
+
     private val _favorites = MutableStateFlow<List<FavoriteItemDto>>(emptyList())
     val favorites: StateFlow<List<FavoriteItemDto>> = _favorites.asStateFlow()
 
@@ -37,71 +40,97 @@ class AnimeRepository(
     val history: StateFlow<List<HistoryItemDto>> = _history.asStateFlow()
 
     suspend fun getHomeData(): Result<HomeDataDto> = withContext(Dispatchers.IO) {
-        try {
-            logger.i("Fetching home data from backend")
-            val data = apiService.getHome()
-            Result.success(data)
-        } catch (e: Exception) {
-            if (e is java.net.ConnectException || e is java.net.SocketTimeoutException) {
-                logger.i("Backend server offline, memuat data katalog lokal.")
-            } else {
-                logger.w("Failed to fetch home data from backend: ${e.message}")
-            }
-            Result.success(getFallbackHomeData())
+        // 1. Coba Wajik Anime API (Utama)
+        wajikClient.getHome().onSuccess {
+            logger.i("Berhasil memuat beranda dari Wajik Anime API")
+            return@withContext Result.success(it)
         }
+
+        // 2. Coba Jikan API (Cadangan)
+        jikanClient.getHome().onSuccess {
+            logger.i("Berhasil memuat beranda dari Jikan API (Cadangan)")
+            return@withContext Result.success(it)
+        }
+
+        // 3. Coba local backend jika aktif
+        try {
+            val data = apiService.getHome()
+            return@withContext Result.success(data)
+        } catch (_: Exception) {}
+
+        // 4. Katalog lokal
+        logger.i("Memuat data katalog lokal.")
+        Result.success(getFallbackHomeData())
     }
 
     suspend fun getAnimeDetail(slug: String): Result<AnimeDetailDto> = withContext(Dispatchers.IO) {
-        try {
-            logger.i("Fetching anime detail for: $slug")
-            val data = apiService.getAnimeDetail(slug)
-            Result.success(data)
-        } catch (e: Exception) {
-            if (e is java.net.ConnectException || e is java.net.SocketTimeoutException) {
-                logger.i("Backend server offline, memuat detail lokal untuk $slug")
-            } else {
-                logger.w("Failed to fetch anime detail for $slug: ${e.message}")
-            }
-            Result.success(getFallbackAnimeDetail(slug))
+        // 1. Coba Wajik Anime API (Utama)
+        wajikClient.getAnimeDetail(slug).onSuccess {
+            logger.i("Berhasil memuat detail $slug dari Wajik Anime API")
+            return@withContext Result.success(it)
         }
+
+        // 2. Coba Jikan API (Cadangan)
+        jikanClient.getAnimeDetail(slug).onSuccess {
+            logger.i("Berhasil memuat detail $slug dari Jikan API (Cadangan)")
+            return@withContext Result.success(it)
+        }
+
+        // 3. Coba local backend
+        try {
+            val data = apiService.getAnimeDetail(slug)
+            return@withContext Result.success(data)
+        } catch (_: Exception) {}
+
+        // 4. Fallback lokal
+        Result.success(getFallbackAnimeDetail(slug))
     }
 
     suspend fun getEpisodeStream(slug: String): Result<EpisodeStreamDto> = withContext(Dispatchers.IO) {
-        try {
-            logger.i("Fetching episode stream for: $slug")
-            val data = apiService.getEpisodeStream(slug)
-            Result.success(data)
-        } catch (e: Exception) {
-            if (e is java.net.ConnectException || e is java.net.SocketTimeoutException) {
-                logger.i("Backend server offline, memuat stream video lokal untuk $slug")
-            } else {
-                logger.w("Failed to fetch stream for $slug: ${e.message}")
-            }
-            Result.success(getFallbackEpisodeStream(slug))
+        // 1. Coba Wajik Anime API (Utama)
+        wajikClient.getEpisodeStream(slug).onSuccess {
+            logger.i("Berhasil memuat stream $slug dari Wajik Anime API")
+            return@withContext Result.success(it)
         }
+
+        // 2. Coba Jikan API (Cadangan)
+        jikanClient.getEpisodeStream(slug).onSuccess {
+            logger.i("Berhasil memuat stream $slug dari Jikan API (Cadangan)")
+            return@withContext Result.success(it)
+        }
+
+        // 3. Coba local backend
+        try {
+            val data = apiService.getEpisodeStream(slug)
+            return@withContext Result.success(data)
+        } catch (_: Exception) {}
+
+        // 4. Fallback lokal
+        Result.success(getFallbackEpisodeStream(slug))
     }
 
     suspend fun searchAnime(query: String): Result<List<AnimeDto>> = withContext(Dispatchers.IO) {
+        wajikClient.searchAnime(query).onSuccess { if (it.isNotEmpty()) return@withContext Result.success(it) }
+        jikanClient.searchAnime(query).onSuccess { if (it.isNotEmpty()) return@withContext Result.success(it) }
         try {
-            logger.i("Searching anime: $query")
             val data = apiService.searchAnime(query)
-            Result.success(data)
-        } catch (e: Exception) {
-            logger.e("Failed to search anime, using fallback matching", e)
-            val filtered = getFallbackHomeData().popularAnime.filter {
-                it.title.contains(query, ignoreCase = true)
-            }
-            Result.success(filtered)
+            if (data.isNotEmpty()) return@withContext Result.success(data)
+        } catch (_: Exception) {}
+
+        val filtered = getFallbackHomeData().popularAnime.filter {
+            it.title.contains(query, ignoreCase = true)
         }
+        Result.success(filtered)
     }
 
     suspend fun getAnimeCatalog(page: Int = 1, genre: String? = null): Result<List<AnimeDto>> = withContext(Dispatchers.IO) {
+        wajikClient.getOngoing(page).onSuccess { if (it.items.isNotEmpty()) return@withContext Result.success(it.items) }
+        jikanClient.getOngoing(page).onSuccess { if (it.items.isNotEmpty()) return@withContext Result.success(it.items) }
         try {
             val data = apiService.getAnimeList(page, genre)
-            Result.success(data.items)
-        } catch (e: Exception) {
-            Result.success(getFallbackHomeData().popularAnime)
-        }
+            if (data.items.isNotEmpty()) return@withContext Result.success(data.items)
+        } catch (_: Exception) {}
+        Result.success(getFallbackHomeData().popularAnime)
     }
 
     suspend fun refreshFavorites() = withContext(Dispatchers.IO) {
@@ -288,35 +317,48 @@ class AnimeRepository(
             HomeBannerDto(
                 title = "Sousou no Frieren",
                 slug = "sousou-no-frieren",
-                poster = "https://images.unsplash.com/photo-1534447677768-be436bb09401?w=800",
+                poster = "https://cdn.myanimelist.net/images/anime/1015/138075l.jpg",
                 genres = listOf("Petualangan", "Drama", "Fantasi"),
                 synopsis = "Setelah mengalahkan Raja Iblis bersama pahlawan Himmel, penyihir elf Frieren memulai perjalanan panjang memahami arti kehidupan fana."
             ),
             HomeBannerDto(
                 title = "Solo Leveling: Arise",
                 slug = "solo-leveling",
-                poster = "https://images.unsplash.com/photo-1579783902614-a3fb3927b675?w=800",
+                poster = "https://cdn.myanimelist.net/images/anime/1672/140381l.jpg",
                 genres = listOf("Aksi", "Supernatural", "Fantasi"),
                 synopsis = "Sung Jin-woo, hunter terlemah di dunia, tiba-tiba terbangun dengan sistem leveling misterius yang hanya bisa diakses oleh dirinya."
             )
         )
         val latest = listOf(
-            LatestEpisodeDto("Solo Leveling Episode 12", "solo-leveling-episode-12", "solo-leveling", "https://images.unsplash.com/photo-1579783902614-a3fb3927b675?w=400", "12", "10 mnt"),
-            LatestEpisodeDto("Frieren Episode 28", "sousou-no-frieren-episode-28", "sousou-no-frieren", "https://images.unsplash.com/photo-1534447677768-be436bb09401?w=400", "28", "30 mnt"),
-            LatestEpisodeDto("One Piece Episode 1100", "one-piece-episode-1100", "one-piece", "https://images.unsplash.com/photo-1563089145-599997674d42?w=400", "1100", "1 jam"),
-            LatestEpisodeDto("Jujutsu Kaisen S2 Episode 23", "jujutsu-kaisen-s2-episode-23", "jujutsu-kaisen-s2", "https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=400", "23", "3 jam")
+            LatestEpisodeDto("Solo Leveling Episode 12", "solo-leveling-episode-12", "solo-leveling", "https://cdn.myanimelist.net/images/anime/1672/140381l.jpg", "12", "10 mnt"),
+            LatestEpisodeDto("Frieren Episode 28", "sousou-no-frieren-episode-28", "sousou-no-frieren", "https://cdn.myanimelist.net/images/anime/1015/138075l.jpg", "28", "30 mnt"),
+            LatestEpisodeDto("One Piece Episode 1100", "one-piece-episode-1100", "one-piece", "https://cdn.myanimelist.net/images/anime/1244/138851l.jpg", "1100", "1 jam"),
+            LatestEpisodeDto("Jujutsu Kaisen S2 Episode 23", "jujutsu-kaisen-s2-episode-23", "jujutsu-kaisen-s2", "https://cdn.myanimelist.net/images/anime/1792/138022l.jpg", "23", "3 jam")
         )
         val popular = listOf(
-            AnimeDto("Sousou no Frieren", "sousou-no-frieren", "https://images.unsplash.com/photo-1534447677768-be436bb09401?w=400", "TV", "Tamat", "9.14", "28"),
-            AnimeDto("Solo Leveling", "solo-leveling", "https://images.unsplash.com/photo-1579783902614-a3fb3927b675?w=400", "TV", "Ongoing", "8.75", "12"),
-            AnimeDto("One Piece", "one-piece", "https://images.unsplash.com/photo-1563089145-599997674d42?w=400", "TV", "Ongoing", "8.89", "1100"),
-            AnimeDto("Jujutsu Kaisen", "jujutsu-kaisen-s2", "https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=400", "TV", "Tamat", "8.90", "23")
+            AnimeDto("Sousou no Frieren", "sousou-no-frieren", "https://cdn.myanimelist.net/images/anime/1015/138075l.jpg", "TV", "Tamat", "9.14", "28"),
+            AnimeDto("Solo Leveling", "solo-leveling", "https://cdn.myanimelist.net/images/anime/1672/140381l.jpg", "TV", "Ongoing", "8.75", "12"),
+            AnimeDto("One Piece", "one-piece", "https://cdn.myanimelist.net/images/anime/1244/138851l.jpg", "TV", "Ongoing", "8.89", "1100"),
+            AnimeDto("Jujutsu Kaisen", "jujutsu-kaisen-s2", "https://cdn.myanimelist.net/images/anime/1792/138022l.jpg", "TV", "Tamat", "8.90", "23")
         )
         return HomeDataDto(banners, latest, popular)
     }
 
     private fun getFallbackAnimeDetail(slug: String): AnimeDetailDto {
         val title = slug.replace("-", " ").replaceFirstChar { it.uppercase() }
+        val poster = when {
+            slug.contains("frieren", true) -> "https://cdn.myanimelist.net/images/anime/1015/138075l.jpg"
+            slug.contains("solo", true) -> "https://cdn.myanimelist.net/images/anime/1672/140381l.jpg"
+            slug.contains("piece", true) -> "https://cdn.myanimelist.net/images/anime/1244/138851l.jpg"
+            slug.contains("jujutsu", true) -> "https://cdn.myanimelist.net/images/anime/1792/138022l.jpg"
+            slug.contains("dungeon", true) -> "https://cdn.myanimelist.net/images/anime/1487/138656l.jpg"
+            slug.contains("mashle", true) -> "https://cdn.myanimelist.net/images/anime/1922/140026l.jpg"
+            slug.contains("mugen", true) -> "https://cdn.myanimelist.net/images/anime/1404/109375l.jpg"
+            slug.contains("suzume", true) -> "https://cdn.myanimelist.net/images/anime/1710/124103l.jpg"
+            slug.contains("kimi", true) -> "https://cdn.myanimelist.net/images/anime/1935/127974l.jpg"
+            else -> "https://cdn.myanimelist.net/images/anime/1015/138075l.jpg"
+        }
+
         val episodes = (1..12).map { ep ->
             com.neetrust.domain.model.EpisodeListItemDto(
                 title = "Episode $ep",
@@ -329,7 +371,7 @@ class AnimeRepository(
         return AnimeDetailDto(
             title = title,
             slug = slug,
-            poster = "https://images.unsplash.com/photo-1534447677768-be436bb09401?w=600",
+            poster = poster,
             synopsis = "Serial anime populer ini menceritakan petualangan epik dengan animasi memukau dan kisah karakter yang mendalam, menghadirkan nuansa emosional dan pertarungan sengit di setiap episodenya.",
             score = "8.95",
             status = "Ongoing",
@@ -343,23 +385,31 @@ class AnimeRepository(
     private fun getFallbackEpisodeStream(slug: String): EpisodeStreamDto {
         val animeSlug = if (slug.contains("-episode-")) slug.substringBefore("-episode-") else slug
         val epNum = if (slug.contains("-episode-")) slug.substringAfterLast("-episode-") else "1"
+        val animeTitle = animeSlug.replace("-", " ").replaceFirstChar { it.uppercase() }
 
-        val sampleStreamUrl = "https://storage.googleapis.com/exoplayer-test-media-0/BigBuckBunny_320x180.mp4"
-        val ultraStreamUrl = "https://storage.googleapis.com/exoplayer-test-media-1/mp4/dizzy-with-tx3g.mp4"
+        val embedUrl = when {
+            animeSlug.contains("frieren", true) -> "https://www.youtube.com/embed/ZEkwCGJ3o7M?autoplay=1"
+            animeSlug.contains("solo", true) -> "https://www.youtube.com/embed/916hyC_Xw1E?autoplay=1"
+            animeSlug.contains("piece", true) -> "https://www.youtube.com/embed/l_98K4_6UQk?autoplay=1"
+            animeSlug.contains("jujutsu", true) -> "https://www.youtube.com/embed/O6qVieflwqs?autoplay=1"
+            else -> "https://www.youtube.com/embed/ZEkwCGJ3o7M?autoplay=1"
+        }
+
+        val directStreamUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4"
 
         val servers = listOf(
-            VideoServerDto("srv_1", "Server HD Utama", sampleStreamUrl, "720p", isEmbed = false),
-            VideoServerDto("srv_2", "Server 1080p Ultra", ultraStreamUrl, "1080p", isEmbed = false),
-            VideoServerDto("srv_3", "Server Hemat 480p", sampleStreamUrl, "480p", isEmbed = false)
+            VideoServerDto("srv_1", "Server Utama (Direct HD)", directStreamUrl, "720p", isEmbed = false),
+            VideoServerDto("srv_2", "Server Cadangan (Embed Web)", embedUrl, "HD", isEmbed = true),
+            VideoServerDto("srv_3", "Server 1080p Ultra", directStreamUrl, "1080p", isEmbed = false)
         )
 
         return EpisodeStreamDto(
-            title = "${animeSlug.replace("-", " ").replaceFirstChar { it.uppercase() }} Episode $epNum",
+            title = "$animeTitle Episode $epNum",
             episodeSlug = slug,
             animeSlug = animeSlug,
-            animeTitle = animeSlug.replace("-", " ").replaceFirstChar { it.uppercase() },
+            animeTitle = animeTitle,
             episodeNumber = epNum,
-            defaultStreamUrl = sampleStreamUrl,
+            defaultStreamUrl = directStreamUrl,
             servers = servers,
             prevEpisodeSlug = if ((epNum.toIntOrNull() ?: 1) > 1) "$animeSlug-episode-${(epNum.toIntOrNull() ?: 2) - 1}" else null,
             nextEpisodeSlug = "$animeSlug-episode-${(epNum.toIntOrNull() ?: 1) + 1}"

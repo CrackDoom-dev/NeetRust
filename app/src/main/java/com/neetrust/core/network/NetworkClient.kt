@@ -48,7 +48,7 @@ object NetworkClient {
                 .build()
             try {
                 val response = chain
-                    .withConnectTimeout(2, TimeUnit.SECONDS)
+                    .withConnectTimeout(600, TimeUnit.MILLISECONDS)
                     .proceed(original.newBuilder().url(url).build())
                 activeIndex = index
                 return@Interceptor response
@@ -68,9 +68,18 @@ object NetworkClient {
             .addInterceptor(failoverInterceptor)
             .addInterceptor(authInterceptor)
             .addInterceptor(loggingInterceptor)
-            .connectTimeout(2, TimeUnit.SECONDS)
+            .connectTimeout(1, TimeUnit.SECONDS)
             .readTimeout(AppConfig.NETWORK_TIMEOUT_SECONDS, TimeUnit.SECONDS)
             .writeTimeout(AppConfig.NETWORK_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+            .build()
+    }
+
+    val externalHttpClient: OkHttpClient by lazy {
+        OkHttpClient.Builder()
+            .addInterceptor(loggingInterceptor)
+            .connectTimeout(6, TimeUnit.SECONDS)
+            .readTimeout(12, TimeUnit.SECONDS)
+            .writeTimeout(12, TimeUnit.SECONDS)
             .build()
     }
 
