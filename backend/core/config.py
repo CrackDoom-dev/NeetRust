@@ -6,7 +6,7 @@ load_dotenv()
 
 class Settings(BaseModel):
 
-    SAMEHADAKU_BASE_URL: str = os.getenv("SAMEHADAKU_BASE_URL", "https://samehadaku.email")
+    SAMEHADAKU_BASE_URL: str = os.getenv("SAMEHADAKU_BASE_URL", "https://samehadaku.org")
 
     JWT_SECRET_KEY: str = os.getenv("JWT_SECRET_KEY", "neetrust-ultra-secure-secret-key-change-in-production-2026")
     JWT_ALGORITHM: str = os.getenv("JWT_ALGORITHM", "HS256")
